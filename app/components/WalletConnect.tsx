@@ -79,7 +79,7 @@ export default function WalletConnect() {
                   >
                     {wallet.icon && (
                       <img 
-                        src={typeof wallet.icon === 'string' ? wallet.icon : wallet.icon.data} 
+                        src={typeof wallet.icon === 'string' ? wallet.icon : (wallet.icon as any).data || wallet.icon} 
                         alt={wallet.name} 
                         className="w-8 h-8"
                       />
