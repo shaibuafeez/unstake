@@ -10,7 +10,7 @@ export default function WalletConnect() {
   const { mutate: disconnect } = useDisconnectWallet();
   const [showWalletList, setShowWalletList] = useState(false);
 
-  const handleConnect = (wallet: any) => {
+  const handleConnect = (wallet: ReturnType<typeof useWallets>[0]) => {
     connect(
       { wallet },
       {
@@ -78,8 +78,9 @@ export default function WalletConnect() {
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-colors"
                   >
                     {wallet.icon && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img 
-                        src={typeof wallet.icon === 'string' ? wallet.icon : (wallet.icon as any).data || wallet.icon} 
+                        src={typeof wallet.icon === 'string' ? wallet.icon : (wallet.icon as { data: string }).data || ''} 
                         alt={wallet.name} 
                         className="w-8 h-8"
                       />

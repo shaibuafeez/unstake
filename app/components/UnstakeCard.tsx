@@ -4,9 +4,22 @@ import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { useState } from 'react';
 
+import type { SuiObjectResponse } from '@mysten/sui/client';
+
+interface KioskCap {
+  data?: {
+    objectId: string;
+    content?: {
+      fields?: {
+        for?: string;
+      };
+    };
+  };
+}
+
 interface UnstakeCardProps {
-  nft: any;
-  kioskCaps: any[];
+  nft: SuiObjectResponse;
+  kioskCaps: KioskCap[];
   config: {
     PACKAGE_ID: string;
     INK_DROPLETS_ID: string;
@@ -21,12 +34,11 @@ export default function UnstakeCard({ nft, kioskCaps, config, onUnstaked }: Unst
 
   // Extract NFT data
   const nftData = nft.data;
-  const content = nftData?.content;
+  const content = nftData?.content as any;
   const fields = content?.fields || {};
   const stakingInfo = fields.staking_info?.fields || {};
   
   const nftId = nftData?.objectId;
-  const originalNftId = fields.ika_chan_nft_id;
   const level = stakingInfo.level || 0;
   const rarity = stakingInfo.rarity || 'Unknown';
   const inkDropletsEarned = fields.ink_droplets_earned || '0';
@@ -66,7 +78,7 @@ export default function UnstakeCard({ nft, kioskCaps, config, onUnstaked }: Unst
         target: `${config.PACKAGE_ID}::ink_sack_tasks::unstake_ika_chan_nft`,
         arguments: [
           tx.object(config.INK_DROPLETS_ID),
-          tx.object(nftId),
+          tx.object(nftId!),
           tx.object(kioskId),
           tx.object(kioskCapId),
           tx.object(config.TRANSFER_POLICY_ID),
@@ -78,20 +90,20 @@ export default function UnstakeCard({ nft, kioskCaps, config, onUnstaked }: Unst
           transaction: tx,
         },
         {
-          onSuccess: (result: any) => {
+          onSuccess: (result) => {
             console.log('Unstaked successfully:', result);
             alert(`NFT unstaked successfully! Transaction: ${result.digest}`);
             onUnstaked();
           },
-          onError: (error: any) => {
+          onError: (error) => {
             console.error('Unstaking error:', error);
             alert(`Failed to unstake: ${error.message}`);
           },
         }
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating transaction:', error);
-      alert(`Error: ${error.message}`);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUnstaking(false);
     }
