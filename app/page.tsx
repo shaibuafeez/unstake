@@ -1,103 +1,161 @@
-import Image from "next/image";
+'use client';
+
+import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import UnstakeCard from './components/UnstakeCard';
+import WalletConnect from './components/WalletConnect';
+
+// Contract configuration
+const CONFIG = {
+  PACKAGE_ID: '0x0b490b62d277395afdc9b5349f93660e8672be6de9e83dca6381d300eb892e7a',
+  INK_DROPLETS_ID: '0x30cbf174d7b80b290ea0b92ed51b69d917216407a22c658f734450390578db21',
+  TRANSFER_POLICY_ID: '0x28c51b58178025263a2d2967abe3ec20e4d97084733e971f57650e54710b8a42',
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const account = useCurrentAccount();
+  const client = useSuiClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Fetch staked NFTs
+  const { data: stakedNFTs, isLoading, refetch } = useQuery({
+    queryKey: ['stakedNFTs', account?.address],
+    queryFn: async () => {
+      if (!account) return [];
+      
+      const objects = await client.getOwnedObjects({
+        owner: account.address,
+        filter: {
+          StructType: `${CONFIG.PACKAGE_ID}::ink_sack_tasks::StakedIkaChanNft`
+        },
+        options: {
+          showType: true,
+          showContent: true,
+          showOwner: true,
+        }
+      });
+
+      return objects.data || [];
+    },
+    enabled: !!account,
+  });
+
+  // Fetch kiosk owner caps
+  const { data: kioskCaps } = useQuery({
+    queryKey: ['kioskCaps', account?.address],
+    queryFn: async () => {
+      if (!account) return [];
+      
+      const objects = await client.getOwnedObjects({
+        owner: account.address,
+        filter: {
+          StructType: '0x2::kiosk::KioskOwnerCap'
+        },
+        options: {
+          showType: true,
+          showContent: true,
+        }
+      });
+
+      return objects.data || [];
+    },
+    enabled: !!account,
+  });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-5xl font-bold text-white mb-4">
+            🦑 IKA NFT Unstaking
+          </h1>
+          <p className="text-purple-200 text-lg">
+            Unstake your IKA Chan NFTs from the Ink Sack Tasks pool
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {/* Wallet Connection */}
+        <div className="flex justify-center mb-8">
+          <WalletConnect />
+        </div>
+
+        {account && (
+          <>
+            {/* Stats */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 mb-8 max-w-2xl mx-auto">
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <p className="text-purple-200 text-sm">Connected Wallet</p>
+                  <p className="text-white font-mono text-xs mt-1">
+                    {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-purple-200 text-sm">Staked NFTs</p>
+                  <p className="text-white text-2xl font-bold">{stakedNFTs?.length || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Refresh Button */}
+            <div className="text-center mb-6">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isRefreshing ? 'Refreshing...' : 'Refresh NFTs'}
+              </button>
+            </div>
+
+            {/* NFT Grid */}
+            {isLoading ? (
+              <div className="text-center py-20">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+                <p className="text-white mt-4">Loading staked NFTs...</p>
+              </div>
+            ) : stakedNFTs && stakedNFTs.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {stakedNFTs.map((nft) => (
+                  <UnstakeCard
+                    key={nft.data?.objectId}
+                    nft={nft}
+                    kioskCaps={kioskCaps || []}
+                    config={CONFIG}
+                    onUnstaked={refetch}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-white text-xl">No staked NFTs found</p>
+                <p className="text-purple-200 mt-2">
+                  Stake your IKA Chan NFTs to start earning rewards
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {!account && (
+          <div className="text-center py-20">
+            <p className="text-white text-xl mb-4">
+              Connect your wallet to view staked NFTs
+            </p>
+            <p className="text-purple-200">
+              Make sure you have Sui Wallet, Suiet, or another compatible wallet installed
+            </p>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
