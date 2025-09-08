@@ -6,20 +6,9 @@ import { useState } from 'react';
 
 import type { SuiObjectResponse } from '@mysten/sui/client';
 
-interface KioskCap {
-  data?: {
-    objectId: string;
-    content?: {
-      fields?: {
-        for?: string;
-      };
-    };
-  };
-}
-
 interface UnstakeCardProps {
   nft: SuiObjectResponse;
-  kioskCaps: KioskCap[];
+  kioskCaps: SuiObjectResponse[];
   config: {
     PACKAGE_ID: string;
     INK_DROPLETS_ID: string;
@@ -34,14 +23,14 @@ export default function UnstakeCard({ nft, kioskCaps, config, onUnstaked }: Unst
 
   // Extract NFT data
   const nftData = nft.data;
-  const content = nftData?.content as any;
-  const fields = content?.fields || {};
-  const stakingInfo = fields.staking_info?.fields || {};
+  const content = nftData?.content;
+  const fields = (content && 'fields' in content) ? (content as unknown as { fields: Record<string, unknown> }).fields : {};
+  const stakingInfo = (fields.staking_info as { fields?: Record<string, unknown> })?.fields || {};
   
   const nftId = nftData?.objectId;
-  const level = stakingInfo.level || 0;
-  const rarity = stakingInfo.rarity || 'Unknown';
-  const inkDropletsEarned = fields.ink_droplets_earned || '0';
+  const level = Number(stakingInfo.level) || 0;
+  const rarity = String(stakingInfo.rarity || 'Unknown');
+  const inkDropletsEarned = String(fields.ink_droplets_earned || '0');
 
   // Get rarity color
   const getRarityColor = (rarity: string) => {
@@ -62,7 +51,8 @@ export default function UnstakeCard({ nft, kioskCaps, config, onUnstaked }: Unst
 
     const kioskCap = kioskCaps[0];
     const kioskCapId = kioskCap.data?.objectId;
-    const kioskId = kioskCap.data?.content?.fields?.for;
+    const kioskCapContent = kioskCap.data?.content;
+    const kioskId = (kioskCapContent && 'fields' in kioskCapContent) ? (kioskCapContent as unknown as { fields: { for?: string } }).fields?.for : undefined;
 
     if (!kioskCapId || !kioskId) {
       alert('Invalid kiosk data');
